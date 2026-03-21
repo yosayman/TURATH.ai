@@ -1,11 +1,14 @@
 package com.ragagent.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 /**
  * DTO for incoming chat requests from the frontend.
- * Expects JSON: { "query": "user question" }
+ * Accepts JSON: { "query": "..." } or { "question": "..." }
  */
 public class ChatRequest {
 
+    @JsonAlias({"question", "message"})
     private String query;
 
     public ChatRequest() {}

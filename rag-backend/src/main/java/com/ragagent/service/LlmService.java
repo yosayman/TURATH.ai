@@ -7,22 +7,24 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClient;
 
 /**
  * Service for calling the local LLM (Apple MLX server running
  * a LoRA-fine-tuned LLaMA 3.1 model).
  *
  * Uses the OpenAI-compatible /v1/chat/completions API format.
+ * Modernized with Spring Boot 3.2+ RestClient.
  */
 @Service
 public class LlmService {
 
     private static final Logger log = LoggerFactory.getLogger(LlmService.class);
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
     @Value("${llm.url}")
@@ -37,9 +39,9 @@ public class LlmService {
     @Value("${llm.temperature}")
     private double temperature;
 
-    public LlmService() {
-        this.restTemplate = new RestTemplate();
-        this.objectMapper = new ObjectMapper();
+    public LlmService(RestClient restClient, ObjectMapper objectMapper) {
+        this.restClient = restClient;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -57,6 +59,7 @@ public class LlmService {
             requestBody.put("model", modelName);
             requestBody.put("max_tokens", maxTokens);
             requestBody.put("temperature", temperature);
+            requestBody.put("stream", false);
 
             // Messages array: [system, user]
             ArrayNode messages = objectMapper.createArrayNode();
@@ -73,29 +76,28 @@ public class LlmService {
 
             requestBody.set("messages", messages);
 
-            // Set headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<String> entity = new HttpEntity<>(
-                    objectMapper.writeValueAsString(requestBody), headers
-            );
-
             log.debug("Calling LLM at: {}", llmUrl);
+            log.debug("Model: {}, Max tokens: {}, Temperature: {}", modelName, maxTokens, temperature);
             log.debug("System prompt length: {} chars, User message: '{}'",
                     systemPrompt.length(), userMessage);
 
-            // Make the POST request
-            ResponseEntity<String> response = restTemplate.exchange(
-                    llmUrl, HttpMethod.POST, entity, String.class
-            );
+            // Make the POST request using RestClient (Spring 6.1+)
+            String response = restClient.post()
+                    .uri(llmUrl)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(objectMapper.writeValueAsString(requestBody))
+                    .retrieve()
+                    .body(String.class);
 
             // Parse the response — extract the assistant's message content
-            return parseResponse(response.getBody());
+            return parseResponse(response);
 
+        } catch (ResourceAccessException e) {
+            log.error("LLM connection failed (timeout or refused): {}", e.getMessage());
+            return "⚠️ Impossible de contacter le serveur LLM. Vérifiez que le modèle Turath est bien lancé sur le port 8081.";
         } catch (Exception e) {
             log.error("LLM call failed: {}", e.getMessage(), e);
-            return "I'm sorry, I encountered an error while generating a response. " +
-                   "Please check that the LLM server is running and try again.";
+            return "⚠️ Erreur lors de la génération de la réponse: " + e.getMessage();
         }
     }
 
@@ -113,22 +115,42 @@ public class LlmService {
             JsonNode root = objectMapper.readTree(responseBody);
             JsonNode choices = root.get("choices");
 
-            if (choices != null && choices.isArray() && choices.size() > 0) {
+            if (choices != null && choices.isArray() && !choices.isEmpty()) {
                 JsonNode firstChoice = choices.get(0);
                 JsonNode message = firstChoice.get("message");
                 if (message != null && message.has("content")) {
                     String content = message.get("content").asText();
-                    log.info("LLM response received ({} chars)", content.length());
-                    return content;
+                    
+                    // Clean up Llama 3.1 special tokens that leaked into the response
+                    String cleanedContent = cleanLlamaTokens(content);
+                    
+                    log.info("LLM response received ({} chars)", cleanedContent.length());
+                    return cleanedContent;
                 }
             }
 
             log.warn("Unexpected LLM response format: {}", responseBody);
-            return "Received an unexpected response format from the LLM.";
+            return "⚠️ Format de réponse inattendu du LLM.";
 
         } catch (Exception e) {
             log.error("Failed to parse LLM response: {}", e.getMessage());
-            return "Failed to parse the LLM response.";
+            return "⚠️ Erreur lors du parsing de la réponse LLM.";
         }
+    }
+
+    /**
+     * Removes Llama 3.1 special tokens from the generated text.
+     * These tokens are used internally but should not be visible to users.
+     */
+    private String cleanLlamaTokens(String text) {
+        if (text == null) return "";
+        
+        return text
+                .replaceAll("<\\|eot_id\\|>", "")
+                .replaceAll("<\\|start_header_id\\|>", "")
+                .replaceAll("<\\|end_header_id\\|>", "")
+                .replaceAll("<\\|begin_of_text\\|>", "")
+                .replaceAll("<\\|end_of_text\\|>", "")
+                .trim();
     }
 }
