@@ -1,135 +1,208 @@
 package com.ragagent.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-
-import java.util.ArrayList;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-/**
- * Service for interacting with a locally-running ChromaDB instance.
- *
- * ChromaDB REST API (v0.4+):
- *   POST /api/v1/collections/{collection_id}/query
- *
- * This service:
- *   1. Looks up the collection by name to get its ID.
- *   2. Sends the user query text for embedding + retrieval.
- *   3. Returns the top-K document chunks as a list of strings.
- */
 @Service
 public class ChromaDbService {
 
     private static final Logger log = LoggerFactory.getLogger(ChromaDbService.class);
 
-    private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
+    @Value("${turath.sidecar.url:http://localhost:8002}")
+    private String sidecarUrl;
 
-    @Value("${chromadb.url}")
-    private String chromaDbUrl;
+    @Value("${turath.sidecar.top-k:3}")
+    private int defaultTopK;
 
-    @Value("${chromadb.collection}")
-    private String collectionName;
+    private final org.springframework.web.client.RestTemplate restTemplate;
 
-    @Value("${chromadb.top-k}")
-    private int topK;
+    // ══════════════════════════════════════════════════════
+    // DTOs
+    // ══════════════════════════════════════════════════════
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record DocumentResult(
+            @JsonProperty("content")        String              content,
+            @JsonProperty("distance")       double              distance,
+            @JsonProperty("similarity")     double              similarity,
+            @JsonProperty("reranker_score") double              rerankerScore,
+            @JsonProperty("metadata")       Map<String, Object> metadata
+    ) {}
 
-    public ChromaDbService() {
-        this.restTemplate = new RestTemplate();
-        this.objectMapper = new ObjectMapper();
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record SearchResponse(
+            @JsonProperty("query")          String               query,
+            @JsonProperty("documents")      List<DocumentResult> documents,
+            @JsonProperty("total_found")    int                  totalFound,
+            @JsonProperty("filtered_count") int                  filteredCount,
+            @JsonProperty("pipeline")       String               pipeline,
+            @JsonProperty("timing")         Map<String, Object>  timing
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record HealthResponse(
+            @JsonProperty("status")             String  status,
+            @JsonProperty("model_loaded")       boolean modelLoaded,
+            @JsonProperty("reranker_loaded")    boolean rerankerLoaded,
+            @JsonProperty("chromadb_connected") boolean chromadbConnected,
+            @JsonProperty("device")             String  device,
+            @JsonProperty("collection_count")   int     collectionCount
+    ) {}
+
+    // ══════════════════════════════════════════════════════
+    // CONSTRUCTOR
+    // ══════════════════════════════════════════════════════
+    public ChromaDbService(RestTemplateBuilder builder) {
+        // Configure timeouts via SimpleClientHttpRequestFactory (Spring Boot compatible)
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout((int) Duration.ofSeconds(5).toMillis());
+        factory.setReadTimeout((int) Duration.ofSeconds(60).toMillis());
+        
+        this.restTemplate = builder
+                .requestFactory(() -> factory)
+                .build();
+        log.info("🔌 ChromaDbService initialized — Sidecar Pattern v2.0");
     }
 
-    /**
-     * Retrieves the top-K most relevant document chunks from ChromaDB
-     * based on the user's query text.
-     *
-     * @param queryText The user's natural language question
-     * @return List of relevant document chunk strings
-     */
-    public List<String> retrieveRelevantChunks(String queryText) {
+    // ══════════════════════════════════════════════════════
+    // MAIN METHODS
+    // ══════════════════════════════════════════════════════
+    public List<String> retrieveRelevantChunks(String userQuery) {
+        return retrieveRelevantChunks(userQuery, defaultTopK);
+    }
+
+    public List<String> retrieveRelevantChunks(String userQuery, int topK) {
+        long start = System.currentTimeMillis();
+
+        String url = UriComponentsBuilder
+                .fromHttpUrl(sidecarUrl + "/search")
+                .queryParam("q",     userQuery)
+                .queryParam("top_k", topK)
+                .build()
+                .toUriString();
+
+        log.info("══════════════════════════════════════════════════════");
+        log.info("🔍 ChromaDbService.retrieveRelevantChunks()");
+        log.info("   Query  : '{}'", userQuery);
+        log.info("   Top-K  : {}", topK);
+        log.info("   URL    : {}", url);
+        log.info("══════════════════════════════════════════════════════");
+
         try {
-            // Step 1: Get the collection ID by name
-            String collectionId = getCollectionId();
-            if (collectionId == null) {
-                log.warn("ChromaDB collection '{}' not found. Returning empty context.", collectionName);
-                return List.of();
+            SearchResponse response = restTemplate.getForObject(url, SearchResponse.class);
+
+            if (response == null) {
+                log.error("❌ Sidecar returned null for: '{}'", userQuery);
+                return Collections.emptyList();
             }
 
-            // Step 2: Query the collection with the user's text
-            String queryUrl = chromaDbUrl + "/api/v1/collections/" + collectionId + "/query";
+            long latency = System.currentTimeMillis() - start;
 
-            // Build the query request body
-            ObjectNode requestBody = objectMapper.createObjectNode();
-            ArrayNode queryTexts = objectMapper.createArrayNode();
-            queryTexts.add(queryText);
-            requestBody.set("query_texts", queryTexts);
-            requestBody.put("n_results", topK);
+            // ── Timing ─────────────────────────────────────────────
+            if (response.timing() != null) {
+                log.info("⏱️  Pipeline timing:");
+                log.info("   Stage1 (Bi-Encoder) : {}ms", response.timing().get("stage1_ms"));
+                log.info("   Stage2 (Reranker)   : {}ms", response.timing().get("stage2_ms"));
+                log.info("   Total               : {}ms", response.timing().get("total_ms"));
+            }
+            log.info("🔀 Pipeline  : {}", response.pipeline());
+            log.info("📊 Docs      : {}/{}", response.filteredCount(), response.totalFound());
+            log.info("🌐 Round-trip: {}ms", latency);
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<String> entity = new HttpEntity<>(objectMapper.writeValueAsString(requestBody), headers);
+            if (response.documents() == null || response.documents().isEmpty()) {
+                log.warn("⚠️  0 documents returned for: '{}'", userQuery);
+                return Collections.emptyList();
+            }
 
-            log.debug("Querying ChromaDB: POST {} with query: '{}'", queryUrl, queryText);
-            ResponseEntity<String> response = restTemplate.exchange(queryUrl, HttpMethod.POST, entity, String.class);
+            // ── Log each result — ✅ Java format ───────────────────
+            for (int i = 0; i < response.documents().size(); i++) {
+                DocumentResult doc = response.documents().get(i);
 
-            // Step 3: Parse the response and extract document texts
-            return parseDocuments(response.getBody());
+                String preview = doc.content() != null && doc.content().length() > 60
+                        ? doc.content().substring(0, 60).replace("\n", " ")
+                        : doc.content();
+
+                String topic = (doc.metadata() != null && doc.metadata().get("topic") != null)
+                        ? String.valueOf(doc.metadata().get("topic"))
+                        : "N/A";
+
+                log.info("   [{}] reranker={} | sim={} | topic={} | {}...",
+                        i + 1,
+                        String.format("%.3f", doc.rerankerScore()),  // ✅ Java format
+                        String.format("%.3f", doc.similarity()),      // ✅ Java format
+                        topic,
+                        preview);
+            }
+
+            List<String> contents = response.documents().stream()
+                    .map(DocumentResult::content)
+                    .collect(Collectors.toList());
+
+            log.info("📦 Returning {} doc(s) to TurathRagService", contents.size());
+            return contents;
+
+        } catch (ResourceAccessException e) {
+            log.error("══════════════════════════════════════════════════════");
+            log.error("❌ ML Sidecar UNREACHABLE: {}", sidecarUrl);
+            log.error("   Fix: python rag_api.py (port 8002)");
+            log.error("   Error: {}", e.getMessage());
+            log.error("══════════════════════════════════════════════════════");
+            return Collections.emptyList();
+
+        } catch (RestClientException e) {
+            log.error("❌ REST error: {}", e.getMessage(), e);
+            return Collections.emptyList();
 
         } catch (Exception e) {
-            log.error("Failed to query ChromaDB: {}", e.getMessage(), e);
-            // Return empty list on failure — the RAG pipeline will proceed without context
-            return List.of();
+            log.error("❌ Unexpected error: {}", e.getMessage(), e);
+            return Collections.emptyList();
         }
     }
 
-    /**
-     * Looks up the ChromaDB collection by name and returns its ID.
-     */
-    private String getCollectionId() {
+    // ══════════════════════════════════════════════════════
+    // HEALTH CHECK
+    // ══════════════════════════════════════════════════════
+    public boolean isSidecarHealthy() {
         try {
-            String url = chromaDbUrl + "/api/v1/collections";
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-            JsonNode collections = objectMapper.readTree(response.getBody());
+            HealthResponse health = restTemplate.getForObject(
+                    sidecarUrl + "/health", HealthResponse.class
+            );
+            if (health == null) return false;
 
-            for (JsonNode collection : collections) {
-                if (collectionName.equals(collection.get("name").asText())) {
-                    return collection.get("id").asText();
-                }
-            }
+            log.info("🏥 Sidecar Health:");
+            log.info("   Status    : {}", health.status());
+            log.info("   BiEncoder : {}", health.modelLoaded()       ? "✅" : "❌");
+            log.info("   Reranker  : {}", health.rerankerLoaded()    ? "✅" : "❌");
+            log.info("   ChromaDB  : {}", health.chromadbConnected() ? "✅" : "❌");
+            log.info("   Device    : {}", health.device());
+            log.info("   Docs      : {}", health.collectionCount());
+
+            return "healthy".equals(health.status());
+
         } catch (Exception e) {
-            log.error("Failed to fetch ChromaDB collections: {}", e.getMessage());
+            log.error("❌ Health check failed: {}", e.getMessage());
+            return false;
         }
-        return null;
     }
 
-    /**
-     * Parses the ChromaDB query response to extract document texts.
-     * Response format: { "documents": [["doc1", "doc2", ...]], ... }
-     */
-    private List<String> parseDocuments(String responseBody) {
-        List<String> documents = new ArrayList<>();
-        try {
-            JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode documentsNode = root.get("documents");
-
-            if (documentsNode != null && documentsNode.isArray() && documentsNode.size() > 0) {
-                JsonNode firstResult = documentsNode.get(0);
-                for (JsonNode doc : firstResult) {
-                    documents.add(doc.asText());
-                }
-            }
-            log.info("Retrieved {} document chunks from ChromaDB", documents.size());
-        } catch (Exception e) {
-            log.error("Failed to parse ChromaDB response: {}", e.getMessage());
-        }
-        return documents;
+    // ══════════════════════════════════════════════════════
+    // RELAXED RETRIEVAL
+    // ══════════════════════════════════════════════════════
+    public List<String> retrieveRelevantChunksRelaxed(String userQuery) {
+        log.info("🔄 Relaxed mode — top_k={}", defaultTopK * 2);
+        return retrieveRelevantChunks(userQuery, defaultTopK * 2);
     }
 }

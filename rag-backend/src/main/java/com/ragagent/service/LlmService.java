@@ -94,10 +94,12 @@ public class LlmService {
 
         } catch (ResourceAccessException e) {
             log.error("LLM connection failed (timeout or refused): {}", e.getMessage());
-            return "⚠️ Impossible de contacter le serveur LLM. Vérifiez que le modèle Turath est bien lancé sur le port 8081.";
+            // BUG-C FIX: Arabic Darija error message instead of French
+            return "سمحلي، خدمة الذكاء الاصطناعي ما كاينة دابا. عاود المحاولة من فضلك.";
         } catch (Exception e) {
             log.error("LLM call failed: {}", e.getMessage(), e);
-            return "⚠️ Erreur lors de la génération de la réponse: " + e.getMessage();
+            // BUG-C FIX: Arabic Darija error message instead of French
+            return "سمحلي، وقع مشكل فالنظام. عاود المحاولة من فضلك.";
         }
     }
 
@@ -130,11 +132,13 @@ public class LlmService {
             }
 
             log.warn("Unexpected LLM response format: {}", responseBody);
-            return "⚠️ Format de réponse inattendu du LLM.";
+            // BUG-C FIX: Arabic Darija error message instead of French
+            return "سمحلي، وقع مشكل فالجواب. عاود المحاولة من فضلك.";
 
         } catch (Exception e) {
             log.error("Failed to parse LLM response: {}", e.getMessage());
-            return "⚠️ Erreur lors du parsing de la réponse LLM.";
+            // BUG-C FIX: Arabic Darija error message instead of French
+            return "سمحلي، وقع مشكل فالنظام. عاود المحاولة من فضلك.";
         }
     }
 

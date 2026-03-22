@@ -1,9 +1,0 @@
-/Users/ayoubkaddioui/IdeaProjects/TURATH.ai/rag-backend/src/main/java/com/ragagent/model/ChatResponse.java
-/Users/ayoubkaddioui/IdeaProjects/TURATH.ai/rag-backend/src/main/java/com/ragagent/service/ChromaDbService.java
-/Users/ayoubkaddioui/IdeaProjects/TURATH.ai/rag-backend/src/main/java/com/ragagent/config/CorsConfig.java
-/Users/ayoubkaddioui/IdeaProjects/TURATH.ai/rag-backend/src/main/java/com/ragagent/service/RagService.java
-/Users/ayoubkaddioui/IdeaProjects/TURATH.ai/rag-backend/src/main/java/com/ragagent/model/ChatRequest.java
-/Users/ayoubkaddioui/IdeaProjects/TURATH.ai/rag-backend/src/main/java/com/ragagent/controller/ChatController.java
-/Users/ayoubkaddioui/IdeaProjects/TURATH.ai/rag-backend/src/main/java/com/ragagent/RagBackendApplication.java
-/Users/ayoubkaddioui/IdeaProjects/TURATH.ai/rag-backend/src/main/java/com/ragagent/config/RestClientConfig.java
-/Users/ayoubkaddioui/IdeaProjects/TURATH.ai/rag-backend/src/main/java/com/ragagent/service/LlmService.java

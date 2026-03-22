@@ -2,7 +2,7 @@ package com.ragagent.controller;
 
 import com.ragagent.model.ChatRequest;
 import com.ragagent.model.ChatResponse;
-import com.ragagent.service.RagService;
+import com.ragagent.service.TurathRagService; // 👈 هادي هي الكلاس الواعرة ديالنا
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,18 +14,16 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api")
 public class ChatController {
 
-    private final RagService ragService;
+    private final TurathRagService turathRagService; // 👈 بدلنا السمية
 
-    public ChatController(RagService ragService) {
-        this.ragService = ragService;
+    // Injection de dépendance
+    public ChatController(TurathRagService turathRagService) {
+        this.turathRagService = turathRagService;
     }
 
     /**
      * Accepts a user query and returns an AI-generated answer
      * using the full RAG pipeline (ChromaDB retrieval + LLM generation).
-     *
-     * @param request JSON payload with "query" field
-     * @return JSON payload with "answer" field
      */
     @PostMapping("/chat")
     public ResponseEntity<ChatResponse> chat(@RequestBody ChatRequest request) {
@@ -35,8 +33,9 @@ public class ChatController {
                     .body(new ChatResponse("Error: query cannot be empty."));
         }
 
-        // Execute RAG pipeline
-        String answer = ragService.getAnswer(request.getQuery());
+        // Execute the REAL RAG pipeline (Fail-Fast + Sandwich Prompt)
+        String answer = turathRagService.askTurath(request.getQuery()); // 👈 عيطنا لـ askTurath
+
         return ResponseEntity.ok(new ChatResponse(answer));
     }
 }
