@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import KhaimaParallax from "@/components/ui/KhaimaParallax";
 import { sendMessage, generateId, type ChatMessage } from "@/lib/chat-service";
 
 // ─────────────────────────────────────────────────────────────
@@ -257,9 +258,10 @@ export default function ChatPage() {
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <KhaimaParallax>
+      <div className="flex h-screen flex-col overflow-hidden relative z-10 w-full">
       {/* ───── Header ───── */}
-      <header className="shrink-0 border-b border-border/40 bg-background/80 backdrop-blur-md">
+      <header className="shrink-0">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Logo / Brand */}
@@ -354,7 +356,7 @@ export default function ChatPage() {
       </main>
 
       {/* ───── Input Bar ───── */}
-      <footer className="shrink-0 border-t border-border/40 bg-background/80 backdrop-blur-md">
+      <footer className="shrink-0 pb-4">
         <form
           onSubmit={handleSubmit}
           className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-4"
@@ -387,6 +389,7 @@ export default function ChatPage() {
           Powered by RAG pipeline — ChromaDB + Fine-tuned LLaMA 3.1
         </p>
       </footer>
-    </div>
+      </div>
+    </KhaimaParallax>
   );
 }
