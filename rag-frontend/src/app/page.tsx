@@ -79,32 +79,7 @@ function MoroccanStarIcon() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// Suggested prompts for the empty state
-// ─────────────────────────────────────────────────────────────
 
-const SUGGESTED_PROMPTS = [
-  {
-    title: "Moroccan History",
-    prompt: "Tell me about the ancient kingdoms of Morocco",
-    icon: "🏛️",
-  },
-  {
-    title: "Hassani Poetry",
-    prompt: "Explain the tradition of Hassani Tebraa poetry",
-    icon: "📜",
-  },
-  {
-    title: "Saharan Culture",
-    prompt: "Describe traditional Sahrawi tea ceremonies",
-    icon: "🍵",
-  },
-  {
-    title: "Moroccan Cuisine",
-    prompt: "What makes Moroccan tagine unique?",
-    icon: "🫕",
-  },
-];
 
 // ─────────────────────────────────────────────────────────────
 // Loading dots component
@@ -265,8 +240,8 @@ export default function ChatPage() {
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Logo / Brand */}
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-moroccan-gold to-moroccan-red shadow-lg shadow-moroccan-gold/20">
-              <SparklesIcon />
+            <div className="flex h-9 items-center justify-center">
+              <img src="/LOGO1.png" alt="Hassani AI Logo" className="h-full w-auto object-contain" />
             </div>
             <div>
               <h1 className="text-sm font-semibold tracking-tight">
@@ -278,11 +253,7 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {/* Status indicator */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
-            RAG Pipeline Active
-          </div>
+
         </div>
       </header>
 
@@ -292,11 +263,9 @@ export default function ChatPage() {
           {isEmpty ? (
             /* ── Empty State ── */
             <div className="flex flex-col items-center justify-center py-20">
-              {/* Large animated logo */}
-              <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-moroccan-gold/20 to-moroccan-red/10 border border-moroccan-gold/20 shadow-xl shadow-moroccan-gold/10">
-                <svg viewBox="0 0 24 24" fill="currentColor" className="h-10 w-10 text-moroccan-gold">
-                  <polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9" />
-                </svg>
+              {/* Large logo */}
+              <div className="mb-8 flex h-28 items-center justify-center">
+                <img src="/LOGO1.png" alt="Hassani AI Logo" className="h-full w-auto object-contain drop-shadow-2xl" />
               </div>
 
               <h2 className="mb-2 text-2xl font-bold tracking-tight glow-text">
@@ -307,24 +276,7 @@ export default function ChatPage() {
                 history, poetry, and traditions. Ask me anything!
               </p>
 
-              {/* Suggested prompts grid */}
-              <div className="grid w-full max-w-lg grid-cols-2 gap-3">
-                {SUGGESTED_PROMPTS.map((item) => (
-                  <button
-                    key={item.title}
-                    onClick={() => handleSend(item.prompt)}
-                    className="group glass-card rounded-xl p-4 text-left transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5"
-                  >
-                    <span className="mb-2 block text-xl">{item.icon}</span>
-                    <span className="block text-xs font-medium text-foreground">
-                      {item.title}
-                    </span>
-                    <span className="mt-1 block text-[11px] text-muted-foreground line-clamp-2">
-                      {item.prompt}
-                    </span>
-                  </button>
-                ))}
-              </div>
+
             </div>
           ) : (
             /* ── Messages List ── */
