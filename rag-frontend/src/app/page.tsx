@@ -24,7 +24,7 @@ function SendIcon() {
       strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="h-5 w-5"
+      className="h-6 w-6"
     >
       <path d="M22 2 11 13" />
       <path d="m22 2-7 20-4-9-9-4 20-7Z" />
@@ -313,13 +313,13 @@ export default function ChatPage() {
                   <button
                     key={item.title}
                     onClick={() => handleSend(item.prompt)}
-                    className="group glass-card rounded-xl p-4 text-left transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5"
+                    className="group bg-slate-950/60 backdrop-blur-md border border-white/10 shadow-xl rounded-xl p-4 text-left transition-all duration-300 hover:bg-slate-900/80 hover:border-amber-500/50 hover:-translate-y-1 cursor-pointer"
                   >
-                    <span className="mb-2 block text-xl">{item.icon}</span>
-                    <span className="block text-xs font-medium text-foreground">
+                    <span className="mb-2 block text-5xl drop-shadow-lg">{item.icon}</span>
+                    <span className="block text-xl font-bold text-amber-400">
                       {item.title}
                     </span>
-                    <span className="mt-1 block text-[11px] text-muted-foreground line-clamp-2">
+                    <span className="mt-1 block text-base text-amber-50/80 leading-relaxed line-clamp-2">
                       {item.prompt}
                     </span>
                   </button>
@@ -359,9 +359,9 @@ export default function ChatPage() {
       <footer className="shrink-0 pb-4">
         <form
           onSubmit={handleSubmit}
-          className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-4"
+          className="mx-auto flex max-w-4xl items-center gap-3 px-4"
         >
-          <div className="relative flex-1">
+          <div className="relative flex-1 bg-slate-950/80 backdrop-blur-xl border border-amber-500/40 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.5)] p-2">
             <Input
               ref={inputRef}
               id="chat-input"
@@ -370,7 +370,7 @@ export default function ChatPage() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               disabled={isLoading}
-              className="h-12 rounded-xl bg-secondary/50 border-border/50 pl-4 pr-4 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/40 transition-all"
+              className="h-12 rounded-xl bg-transparent border-0 pl-4 pr-4 text-lg placeholder:text-amber-200/50 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
             />
           </div>
 
@@ -379,7 +379,7 @@ export default function ChatPage() {
             type="submit"
             disabled={isLoading || !inputValue.trim()}
             size="icon"
-            className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-r from-primary to-moroccan-gold text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-200 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 disabled:opacity-40 disabled:shadow-none disabled:translate-y-0"
+            className="h-14 w-14 shrink-0 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white p-4 shadow-lg transition-all disabled:opacity-40"
           >
             <SendIcon />
           </Button>
