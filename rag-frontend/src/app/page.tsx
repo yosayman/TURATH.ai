@@ -85,23 +85,23 @@ function MoroccanStarIcon() {
 
 const SUGGESTED_PROMPTS = [
   {
-    title: "Moroccan History",
-    prompt: "Tell me about the ancient kingdoms of Morocco",
+    title: "التاريخ المغربي",
+    prompt: "عاود ليا على الممالك القديمة ديال المغرب",
     icon: "🏛️",
   },
   {
-    title: "Hassani Poetry",
-    prompt: "Explain the tradition of Hassani Tebraa poetry",
+    title: "الشعر الحساني",
+    prompt: "شنو هو السر وراء تقاليد شعر التبراع الحساني؟",
     icon: "📜",
   },
   {
-    title: "Saharan Culture",
-    prompt: "Describe traditional Sahrawi tea ceremonies",
+    title: "الثقافة الصحراوية",
+    prompt: "وصف ليا طقوس جلسة أتاي الأصيلة عند الصحراوة",
     icon: "🍵",
   },
   {
-    title: "Moroccan Cuisine",
-    prompt: "What makes Moroccan tagine unique?",
+    title: "الطبخ المغربي",
+    prompt: "شنو اللي كيخلي الطاجين المغربي مميز فالعالم؟",
     icon: "🫕",
   },
 ];
@@ -366,7 +366,7 @@ export default function ChatPage() {
               ref={inputRef}
               id="chat-input"
               type="text"
-              placeholder="Ask about Moroccan culture, history, or traditions…"
+              placeholder="سولني على الثقافة، التاريخ، أو التقاليد المغربية..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               disabled={isLoading}
