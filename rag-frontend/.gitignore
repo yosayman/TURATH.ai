@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Spring Boot / Java
+rag-backend/target/
+*.jar
+*.class
+
+# Python
+rag-sidecar/venv/
+rag-sidecar/__pycache__/
