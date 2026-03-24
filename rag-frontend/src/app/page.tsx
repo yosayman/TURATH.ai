@@ -106,7 +106,19 @@ const SUGGESTED_PROMPTS = [
   },
 ];
 
+// ─────────────────────────────────────────────────────────────
+// Loading dots component
+// ─────────────────────────────────────────────────────────────
 
+function LoadingDots() {
+  return (
+    <div className="flex items-center gap-1.5 py-2">
+      <div className="loading-dot h-2 w-2 rounded-full bg-primary" />
+      <div className="loading-dot h-2 w-2 rounded-full bg-primary" />
+      <div className="loading-dot h-2 w-2 rounded-full bg-primary" />
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────
 // Message bubble component
@@ -136,10 +148,10 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
       {/* Message Content */}
       <div
-        className={`${
+        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
           isUser
-            ? "bg-amber-800/80 text-white px-6 py-4 rounded-3xl rounded-tr-none backdrop-blur-md shadow-lg max-w-[70%] text-right"
-            : "max-w-[80%] rounded-2xl px-4 py-3 glass-card rounded-bl-md"
+            ? "bg-primary text-primary-foreground rounded-br-md"
+            : "glass-card rounded-bl-md"
         }`}
       >
         {isUser ? (
@@ -246,11 +258,10 @@ export default function ChatPage() {
   const isEmpty = messages.length === 0;
 
   return (
-    <main className="fixed inset-0 w-screen h-screen overflow-hidden">
-      <KhaimaParallax>
-        <div className="fixed inset-0 z-10 flex flex-col pointer-events-none max-w-4xl mx-auto">
-          {/* ───── Header ───── */}
-          <header className="shrink-0 pointer-events-auto">
+    <KhaimaParallax>
+      <div className="flex h-screen flex-col overflow-hidden relative z-10 w-full">
+      {/* ───── Header ───── */}
+      <header className="shrink-0">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Logo / Brand */}
@@ -276,11 +287,11 @@ export default function ChatPage() {
       </header>
 
       {/* ───── Chat Area ───── */}
-      <div className="flex-1 overflow-y-auto pointer-events-auto flex flex-col space-y-6 px-4 pt-28 pb-8 scrollbar-hide">
-        <div className="mx-auto w-full">
+      <main className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="mx-auto max-w-4xl px-4 py-6">
           {isEmpty ? (
             /* ── Empty State ── */
-            <div className="flex flex-col items-center justify-center -mt-24 pb-20">
+            <div className="flex flex-col items-center justify-center py-20">
               {/* Large animated logo */}
               <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-moroccan-gold/20 to-moroccan-red/10 border border-moroccan-gold/20 shadow-xl shadow-moroccan-gold/10">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="h-10 w-10 text-moroccan-gold">
@@ -288,10 +299,10 @@ export default function ChatPage() {
                 </svg>
               </div>
 
-              <h2 className="mb-2 text-3xl font-bold tracking-tight glow-text text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]">
+              <h2 className="mb-2 text-2xl font-bold tracking-tight glow-text">
                 Hassani AI
               </h2>
-              <p className="mb-8 max-w-md text-center text-amber-50 text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-relaxed">
+              <p className="mb-8 max-w-md text-center text-sm text-muted-foreground leading-relaxed">
                 Your AI companion for exploring Moroccan and Hassani culture,
                 history, poetry, and traditions. Ask me anything!
               </p>
@@ -324,10 +335,16 @@ export default function ChatPage() {
 
               {/* Loading indicator */}
               {isLoading && (
-                <div className="flex justify-center w-full my-4">
-                  <span className="text-amber-300 font-serif text-lg animate-pulse drop-shadow-md">
-                    تراث يبحث في الأرشيف...
-                  </span>
+                <div className="flex gap-3 mb-6 animate-in fade-in duration-200">
+                  <Avatar className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-moroccan-gold/15 border-moroccan-gold/25">
+                    <MoroccanStarIcon />
+                  </Avatar>
+                  <div className="glass-card rounded-2xl rounded-bl-md px-4 py-3">
+                    <LoadingDots />
+                    <p className="text-[10px] text-muted-foreground/40 mt-1">
+                      Searching knowledge base…
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -336,13 +353,13 @@ export default function ChatPage() {
             </div>
           )}
         </div>
-      </div>
+      </main>
 
       {/* ───── Input Bar ───── */}
-      <div className="shrink-0 pointer-events-auto w-full relative pb-8 px-4 bg-gradient-to-t from-black/80 to-transparent pt-10">
+      <footer className="shrink-0 pb-4">
         <form
           onSubmit={handleSubmit}
-          className="flex w-full items-center gap-3"
+          className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-4"
         >
           <div className="relative flex-1">
             <Input
@@ -353,7 +370,7 @@ export default function ChatPage() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               disabled={isLoading}
-              className="h-12 rounded-xl bg-black/40 border border-amber-600/50 backdrop-blur-xl pl-4 pr-4 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/40 transition-all text-white"
+              className="h-12 rounded-xl bg-secondary/50 border-border/50 pl-4 pr-4 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/40 transition-all"
             />
           </div>
 
@@ -368,12 +385,11 @@ export default function ChatPage() {
           </Button>
         </form>
 
-        <p className="pt-3 text-center text-[10px] text-muted-foreground/60 drop-shadow-md">
+        <p className="mx-auto max-w-4xl px-4 pb-3 text-center text-[10px] text-muted-foreground/40">
           Powered by RAG pipeline — ChromaDB + Fine-tuned LLaMA 3.1
         </p>
+      </footer>
       </div>
-        </div>
-      </KhaimaParallax>
-    </main>
+    </KhaimaParallax>
   );
 }
